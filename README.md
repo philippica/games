@@ -7,8 +7,10 @@ A collection of offline HTML games designed to train cognitive abilities like me
 
 you could try them here 
 
-# https://philippica.github.io/games/memory.html
-# https://philippica.github.io/games/memory.html
+[Memory](https://philippica.github.io/games/memory.html)
+
+[Number](https://philippica.github.io/games/number.html)
+
 
 ## How to Use
 1. Clone this repository or download the ZIP
