@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+	<meta name="description" content="coding by philippica-https://github.com/philippica">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory train</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            background: #DC8B70;
+        }
+
+        #tableContainer {
+			position: relative;
+			width: 90vmin;
+			height: 90vmin;
+			max-width: 600px;
+			max-height: 600px;
+			margin: 20px auto;
+			text-align: center;
+			align-content: center;
+        }
+        table {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        td {
+            border: 8px solid #000;
+            position: relative;
+            transition: transform 0.6s;
+            background-color: white;
+            padding: 0;
+            background: #FED9CD;
+        }
+        td::after {
+            content: '';
+            display: block;
+            margin-top: 100%;
+        }
+        .red-block {
+            background-color: #012632 !important;
+        }
+        .disappear {
+            transform: rotateY(180deg);
+            transition: transform 0.6s;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px) rotate(-1deg); }
+            20%, 80% { transform: translateX(2px) rotate(2deg); }
+            30%, 50%, 70% { transform: translateX(-3px) rotate(-3deg); }
+            40%, 60% { transform: translateX(3px) rotate(3deg); }
+            100% { transform: translateX(0); }
+        }
+        .shake {
+            animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .controls {
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        input {
+            width: 80px;
+            padding: 8px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+		.countdown {
+			font-size: xxx-large;
+		}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div style="font-size: xx-large;font-family:fantasy; display:flex"><div>Current Level:&nbsp;</div>  <div id="level"></div></div>
+			<div style="font-size: xx-large;font-family: fantasy; display:flex"><div>Highest Level:&nbsp;</div>  <div id="history"></div></div>
+        </div>
+        <div id="tableContainer"></div>
+    </div>
+
+    <script>
+        let correctRedBlocks = [];
+        let isClickable = false;
+        let resizeTimer;
+        let correctBlocksCount = 0;
+
+        function calculateCellSize() {
+            const container = document.getElementById('tableContainer');
+            const tables = container.getElementsByTagName('table');
+            
+            if(tables.length > 0) {
+                const table = tables[0];
+                const cells = table.getElementsByTagName('td');
+            }
+        }
+
+        function handleCellClick(event) {
+            if (!isClickable) return;
+            
+            const td = event.target;
+            const container = document.getElementById('tableContainer');
+            const row = parseInt(td.dataset.row);
+            const col = parseInt(td.dataset.col);
+            
+            if (correctRedBlocks[row] && correctRedBlocks[row][col] === 1) {
+                if (!td.classList.contains('red-block')) {
+                    td.classList.remove('disappear');
+                    td.classList.add('red-block');
+                    correctBlocksCount--;
+                    
+                    if (correctBlocksCount === 0) {
+                        setTimeout(() => startGame(true), 1000);
+                    }
+                }
+            } else {
+                container.classList.add('shake');
+                const allTds = document.querySelectorAll('#tableContainer td');
+                
+                allTds.forEach(td => {
+                    const r = parseInt(td.dataset.row);
+                    const c = parseInt(td.dataset.col);
+                    if (correctRedBlocks[r] && correctRedBlocks[r][c] === 1) {
+                        td.classList.remove('disappear');
+                        td.classList.add('red-block');
+                    }
+                });
+
+                setTimeout(() => {
+                    container.classList.remove('shake');
+                    startGame(false);
+                }, 500);
+            }
+        }
+		
+		
+		const levels = [[3,3,4,3], 
+						[4,4,4,2.5], 
+						[4,4,5,2.5], 
+						[4,4,6,2.5], 
+						[4,4,7,2.5],
+						[5,5,7,2.5],
+						[5,5,8,2.5],
+						[5,5,9,2.5],
+						[5,5,10,2.5],
+						[5,5,10,2.5],
+						[5,5,11,2.5],
+						[5,5,12,3],
+						[5,5,13,3],
+						[5,5,14,3],
+						[6,6,14,2.5],
+						[6,6,15,2.5],
+						[6,6,16,2.5]];
+		
+		let historyMax = localStorage.getItem("historyMax")||0;
+		
+		let currentLevel = historyMax > 2 ? historyMax - 2: 0;
+		
+        function countdown() {
+			const container = document.getElementById('tableContainer');
+			container.style.alignContent = 'center';
+            return new Promise((resolve) => {
+			    const container = document.getElementById('tableContainer');
+				container.innerHTML = `<b id="countdown" class="countdown">3</b>`;
+				const updateNumber = () => {
+					const countdown = document.getElementById("countdown");
+					if(countdown.innerHTML == "1") {
+						resolve();
+					}
+					countdown.innerHTML = parseInt(countdown.innerHTML)-1;
+					setTimeout(updateNumber, 800);
+					
+				}
+                setTimeout(updateNumber, 800);
+            });
+        }
+		
+		function startGame(isCorrect) {
+			if(isCorrect && currentLevel+1 < levels.length) currentLevel++;
+			historyMax = Math.max(historyMax, currentLevel);
+			localStorage.setItem("historyMax", historyMax)
+			const levelLabel = document.getElementById("level");
+			levelLabel.innerHTML = `${currentLevel+1}`;
+			const historyLabel = document.getElementById("history");
+			historyLabel.innerHTML = `${historyMax}`;
+		    countdown().then(() => {
+				generateTable(isCorrect);
+			});
+
+		}
+
+
+        function generateTable(isCorrect) {
+			
+			const level = levels[currentLevel];
+            const width = level[0];
+            const height = level[1];
+            const blocks = level[2];
+            const rememberTime = level[3] * 1000;
+
+            const container = document.getElementById('tableContainer');
+            container.innerHTML = '';
+			container.style.alignContent = 'unset';
+            correctRedBlocks = Array(height).fill().map(() => Array(width).fill(0));
+            isClickable = false;
+
+            const table = document.createElement('table');
+            const cells = [];
+            
+            for (let i = 0; i < height; i++) {
+                const tr = document.createElement('tr');
+                for (let j = 0; j < width; j++) {
+                    const td = document.createElement('td');
+                    td.dataset.row = i;
+                    td.dataset.col = j;
+                    td.addEventListener('click', handleCellClick);
+                    tr.appendChild(td);
+                    cells.push(td);
+                }
+                table.appendChild(tr);
+            }
+
+            container.appendChild(table);
+            calculateCellSize();
+            
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(calculateCellSize, 100);
+            });
+
+            const totalCells = width * height;
+            const selected = new Set();
+            while(selected.size < Math.min(blocks, totalCells)) {
+                const randomIndex = Math.floor(Math.random() * totalCells);
+                selected.add(randomIndex);
+            }
+
+            correctBlocksCount = selected.size;
+
+            selected.forEach(index => {
+                const td = cells[index];
+                td.classList.add('red-block');
+                const row = parseInt(td.dataset.row);
+                const col = parseInt(td.dataset.col);
+                correctRedBlocks[row][col] = 1;
+            });
+
+            setTimeout(() => {
+                cells.forEach(td => {
+                    if(td.classList.contains('red-block')) {
+                        td.classList.add('disappear');
+                        td.classList.remove('red-block');
+                    }
+                });
+                isClickable = true;
+            }, rememberTime);
+        }
+
+        startGame(false);
+    </script>
+</body>
+</html>
