@@ -181,7 +181,7 @@
 		
 		let historyMax = localStorage.getItem("historyMax")||0;
 		
-		let currentLevel = 26;
+		let currentLevel = historyMax > 2 ? historyMax - 2: 0;
 		
         function countdown() {
 			const container = document.getElementById('tableContainer');
