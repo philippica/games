@@ -9,6 +9,8 @@ you could try them here
 
 [Memory](https://philippica.github.io/games/memory.html)
 
+[Bouncing ball](https://philippica.github.io/games/bouncingBall.html)
+
 [Number](https://philippica.github.io/games/number.html)
 
 
