@@ -363,21 +363,23 @@ requestAnimationFrame(animate);
 			ans.firstChild.className = 'ans'
 			ans.firstChild.id = 'ans'
 			
-			
+			container.appendChild(table);
 			for(let i = 0; i < cells.length; i++) {
 				const td = cells[i];
 				const row = parseInt(i / height);
 				const col = i % width;
+				
+				const tdRect = td.getBoundingClientRect();
 				if(row > 0 && col > 0 && row < height-1 && col < width-1)
 					if(mp[row-1][col-1] == '\/') {
-						td.innerHTML = '<div class="block"></div>'
+						td.innerHTML = `<div class="block" style="height:${tdRect.height}px;"></div>`
 					} else if(mp[row-1][col-1] == '、'){
-						td.innerHTML = '<div class="block" style="transform: rotate(-45deg);"></div>'
+						td.innerHTML = `<div class="block" style="transform: rotate(-45deg);height:${tdRect.height}px;"></div>`
 					}
 			}
 			
 			
-            container.appendChild(table);
+
 			
             calculateCellSize();
 			
