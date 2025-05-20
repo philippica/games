@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+	<meta name="description" content="coding by philippica-https://github.com/philippica">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory train</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            background: #DC8B70;
+        }
+
+        #tableContainer {
+			position: relative;
+			width: 90vmin;
+			height: 90vmin;
+			max-width: 600px;
+			max-height: 600px;
+			text-align: center;
+			align-content: center;
+        }
+        table {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+        td {
+            border: 8px solid #000;
+            position: relative;
+            transition: transform 0.6s;
+            background-color: white;
+            padding: 0;
+            background: #FED9CD;
+        }
+
+        .red-block {
+            background-color: #012632 !important;
+        }
+        .disappear {
+            transform: rotateY(180deg);
+            transition: transform 0.6s;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px) rotate(-1deg); }
+            20%, 80% { transform: translateX(2px) rotate(2deg); }
+            30%, 50%, 70% { transform: translateX(-3px) rotate(-3deg); }
+            40%, 60% { transform: translateX(3px) rotate(3deg); }
+            100% { transform: translateX(0); }
+        }
+        .shake {
+            animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .controls {
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        input {
+            width: 80px;
+            padding: 8px;
+            text-align: center;
+        }
+
+		.countdown {
+			font-size: xxx-large;
+		}
+        #container2 {
+            position: relative;
+            display: inline-block;
+        }
+		
+		#overlay {
+            position: absolute;
+            pointer-events: none;
+			top: 0px;
+        }
+		.block {
+			height: 100px;
+			width: 10px;
+			background-color: #795548;
+			position: absolute;
+			justify-self: anchor-center;
+			align-self: anchor-center;
+			transform: rotate(45deg);
+			transform-origin: center;
+			border: 3px solid white;
+			border-radius: 8px;
+		}
+		.button, .ans{
+			height: 20px;
+			width: 20px;
+			background-color: green;
+			justify-self: center;
+			border-radius: 10px;
+		}
+    </style>
+</head>
+<body style="margin: 0px;">
+    <div class="container">
+        <div class="controls">
+            <div style="font-size: xx-large;font-family:fantasy; display:flex"><div>Current Level:&nbsp;</div>  <div id="level"></div></div>
+			<div style="font-size: xx-large;font-family: fantasy; display:flex"><div>Highest Level:&nbsp;</div>  <div id="history"></div></div>
+        </div>
+		<div id="container2">
+			<div id="tableContainer"></div>
+			<svg id="overlay"></svg>
+		</div>
+    </div>
+
+    <script>
+        let correctRedBlocks = [];
+        let isClickable = false;
+        let resizeTimer;
+        let correctBlocksCount = 0;
+
+        function calculateCellSize() {
+            const container = document.getElementById('tableContainer');
+            const tables = container.getElementsByTagName('table');
+            
+            if(tables.length > 0) {
+                const table = tables[0];
+                const cells = table.getElementsByTagName('td');
+            }
+        }
+
+        function handleCellClick(event) {
+
+        }
+		
+		
+		const levels = [[4,4,2,3,0],
+						[4,4,2,3,1],
+						[4,4,3,3,1],
+						[4,4,3,3,2],
+						[4,4,4,3,1],
+						[5,5,3,3,1],
+						[5,5,3,3,2],
+						[5,5,3,3,3],
+						[5,5,4,3,2],
+						[5,5,4,3,3],
+						[5,5,4,3,4],
+						[5,5,5,3,2],
+						[5,5,5,3,3],
+						[6,6,4,3,2],
+						[6,6,4,3,3],
+						[6,6,5,3,2],
+						[6,6,5,3,3],
+						[6,6,6,3,3],
+						[6,6,6,3,4]];
+		
+		let historyMax = localStorage.getItem("historyMax")||0;
+		
+		let currentLevel = 0;
+		
+        function countdown() {
+			const container = document.getElementById('tableContainer');
+			container.style.alignContent = 'center';
+            return new Promise((resolve) => {
+			    const container = document.getElementById('tableContainer');
+				container.innerHTML = `<b id="countdown" class="countdown">3</b>`;
+				const updateNumber = () => {
+					const countdown = document.getElementById("countdown");
+					if(countdown.innerHTML == "1") {
+						resolve();
+					}
+					countdown.innerHTML = parseInt(countdown.innerHTML)-1;
+					setTimeout(updateNumber, 800);
+					
+				}
+                setTimeout(updateNumber, 800);
+            });
+        }
+		
+		function startGame(isCorrect) {
+			if(isCorrect && currentLevel+1 < levels.length) currentLevel++;
+			document.getElementById("overlay").innerHTML="";
+			historyMax = Math.max(historyMax, currentLevel);
+			localStorage.setItem("historyMax", historyMax)
+			const levelLabel = document.getElementById("level");
+			levelLabel.innerHTML = `${currentLevel+1}`;
+			const historyLabel = document.getElementById("history");
+			historyLabel.innerHTML = `${historyMax}`;
+		    countdown().then(() => {
+				generateTable(isCorrect);
+			});
+
+		}
+
+		function anima(svg, path, width,cells, container) {
+		
+		        const blocks = document.getElementsByClassName("block");
+				for(let i = 0; i < blocks.length; i++) {
+					blocks[i].style.display = "unset";
+				}
+		
+			let pathstr = "";
+			for(let i = 0; i < path.length; i++) {
+				const p = path[i];
+				const now = (p.x) * width + p.y;
+				
+				const td = cells[now];
+					const tdRect = td.getBoundingClientRect();
+					
+					const containerRect = container.getBoundingClientRect();
+                
+					// 计算中心点坐标（相对容器）
+					const x = tdRect.left - containerRect.left + tdRect.width / 2;
+					const y = tdRect.top - containerRect.top + tdRect.height / 2;
+					if(i == 0) {
+						pathstr += `M${x} ${y}`;
+					} else 
+					pathstr += `L${x} ${y}`;
+
+			}
+			
+			const path2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			path2.setAttribute("d", pathstr); // 路径字符串
+			path2.setAttribute("stroke", "black");
+			path2.setAttribute("stroke-width", "4");
+			path2.setAttribute("fill", "none");
+			path2.setAttribute("stroke-dasharray", "5,5");
+			
+			svg.appendChild(path2);
+			
+			// 创建小球
+const ball = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+ball.setAttribute('r', '5');
+ball.setAttribute('fill', 'red');
+ball.setAttribute('cx', '0');
+ball.setAttribute('cy', '0');
+svg.appendChild(ball);
+
+const totalLength = path2.getTotalLength();
+let startTime = null;
+const duration = 1000; // 动画持续时间（毫秒）
+
+function animate(timestamp) {
+  if (!startTime) startTime = timestamp;
+  const elapsed = timestamp - startTime;
+  let progress = elapsed / duration;
+
+  // 循环动画
+  if (progress > 1) return;
+
+  // 计算当前路径点
+  const currentLength = progress * totalLength;
+  const point = path2.getPointAtLength(currentLength);
+
+  // 计算旋转角度（可选）
+  const epsilon = 1; // 微小增量计算方向
+  const nextPoint = path2.getPointAtLength((currentLength + epsilon) % totalLength);
+  const dx = nextPoint.x - point.x;
+  const dy = nextPoint.y - point.y;
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+  // 更新小球位置和方向
+  ball.setAttribute('transform', 
+    `translate(${point.x}, ${point.y}) rotate(${angle})`);
+
+  requestAnimationFrame(animate);
+}
+
+// 启动动画
+requestAnimationFrame(animate);
+		}
+
+
+        function generateTable(isCorrect) {
+			
+			const level = levels[currentLevel];
+            const width = level[0]+2;
+            const height = level[1]+2;
+            const K = level[2];
+			const multi = level[4];
+            const rememberTime = level[3] * 1000;
+			const {mp, S, start, path} = generate(width-2, height-2, K);
+			
+			for(let i = 0; i < multi; i++) {
+				while(true) {
+					const h = Math.floor(Math.random() * (height-2));
+					const w = Math.floor(Math.random() * (width-2));
+					const ty = Math.floor(Math.random() * 2);
+					if(mp[h][w] == 0) {
+						mp[h][w] = ty == 0? '\/': '、';
+						break;
+					}
+				}
+			}
+
+            const container = document.getElementById('tableContainer');
+            container.innerHTML = '';
+			container.style.alignContent = 'unset';
+            correctRedBlocks = Array(height).fill().map(() => Array(width).fill(0));
+            isClickable = false;
+
+            const table = document.createElement('table');
+            const cells = [];
+			console.info(path);
+            
+            for (let i = 0; i < height; i++) {
+                const tr = document.createElement('tr');
+                for (let j = 0; j < width; j++) {
+                    const td = document.createElement('td');
+                    td.dataset.row = i;
+                    td.dataset.col = j;
+                    td.addEventListener('click', handleCellClick);
+					if(i == 0) {
+						td.style.background = 'unset';
+						td.style.borderLeft = '0';
+						td.style.borderTop = '0';
+						td.style.borderBottom = '0';
+						td.style.borderRight = '0';
+						td.style.height = "50px";
+						if(j != 0 && j < height-1)td.innerHTML = `<div class="button"></div>`;
+					}
+					if(j == 0) {
+						td.style.background = 'unset';
+						td.style.borderLeft = '0';
+						td.style.borderRight = '0';
+						td.style.borderTop = '0';
+						td.style.borderBottom = '0';
+						td.style.width = "50px";
+						if(i != 0 && i < width-1)td.innerHTML = `<div class="button"></div>`;
+					}
+					
+					if(j == width-1) {
+						td.style.background = 'unset';
+						td.style.borderRight = '0';
+						td.style.borderLeft = '0';
+						td.style.borderTop = '0';
+						td.style.borderBottom = '0';
+						td.style.width = "50px";
+						if(i != 0 && i < width-1)td.innerHTML = `<div class="button"></div>`;
+					}
+					
+					if(i == height-1) {
+						td.style.borderLeft = '0';
+						td.style.background = 'unset';
+						td.style.borderRight = '0';
+						td.style.borderTop = '0';
+						td.style.borderBottom = '0';
+						td.style.height = "50px";
+						if(j != 0 && j < width-1)td.innerHTML = `<div class="button"></div>`;
+					}
+					
+                    tr.appendChild(td);
+                    cells.push(td);
+				
+                }
+                table.appendChild(tr);
+            }
+			
+			const pp = path[path.length-1];
+			const ans = cells[pp.x * height + pp.y];
+			ans.firstChild.className = 'ans'
+			ans.firstChild.id = 'ans'
+			
+			
+			for(let i = 0; i < cells.length; i++) {
+				const td = cells[i];
+				const row = parseInt(i / height);
+				const col = i % width;
+				if(row > 0 && col > 0 && row < height-1 && col < width-1)
+					if(mp[row-1][col-1] == '\/') {
+						td.innerHTML = '<div class="block"></div>'
+					} else if(mp[row-1][col-1] == '、'){
+						td.innerHTML = '<div class="block" style="transform: rotate(-45deg);"></div>'
+					}
+			}
+			
+			
+            container.appendChild(table);
+			
+            calculateCellSize();
+			
+			
+			const svg = document.getElementById('overlay');
+			svg.setAttribute('width', table.offsetWidth);
+            svg.setAttribute('height', table.offsetHeight);
+			
+		
+			
+			
+			
+            
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(calculateCellSize, 100);
+            });
+
+            const totalCells = width * height;
+			
+
+            setTimeout(() => {
+                const blocks = document.getElementsByClassName("block");
+				for(let i = 0; i < blocks.length; i++) {
+					blocks[i].style.display = "none";
+				}
+				console.info(ans);
+				let deg = 0;
+				if(path[0].x == 0) {
+					deg = 90;
+				}
+				if(path[0].x == height-1) {
+					deg = -90;
+				}
+				if(path[0].y == width-1) {
+					deg = 180;
+				}
+				cells[path[0].x * height + path[0].y].innerHTML = `<div style="position: absolute;font-size: xxx-large;align-self: anchor-center;justify-self: anchor-center;transform: rotate(${deg}deg);">➤</div>`;
+                
+				
+				const buttons = document.getElementsByClassName("button");
+				for(let i = 0; i < buttons.length; i++) {
+					buttons[i].onclick= (e) => {
+						container.classList.add('shake');
+						anima(svg, path, width, cells, container);
+					setTimeout(() => {
+						container.classList.remove('shake');
+						startGame(false);
+					}, 2000);
+					};
+				}
+				const anss = document.getElementById("ans");
+				anss.onclick=() =>{
+					anima(svg, path, width, cells, container);
+					setTimeout(() => {
+						startGame(true);
+					}, 3000);
+				}
+            }, rememberTime);
+        }
+
+
+function generate(N, M, K) {
+
+    let dir = Math.floor(Math.random() * 4) + 1;
+    let U;
+    if(dir === 1 || dir === 3) U = Math.floor(Math.random() * M) + 1;
+    else U = Math.floor(Math.random() * N) + 1;
+
+    // 计算起始坐标
+	let S = [dir, U];
+    let start = getStartPos(dir, U, N, M);
+    let mp = Array.from({length: N}, () => Array(M).fill(0));
+    let path = [];
+
+    // DFS搜索路径
+	console.info(K);
+	//mp[start.x][start.y] = 'S';
+	
+	if(dir == 1) {
+		path.push({x:start.x, y:start.y+1})
+	} else if(dir == 2) {
+		path.push({x:start.x+1, y:start.y})
+	} else if(dir == 3) {
+		path.push({x:start.x+2, y:start.y+1})
+	} else if(dir == 4) {
+		path.push({x:start.x+1, y:start.y+2})
+	}
+	mp[start.x][start.y] = 's';
+    let success = dfs(start.x, start.y, K, dir, mp, path);
+	if(!success)return generate(N, M, K);
+	
+	return {mp, S, start, path};
+   
+}
+
+function dfs(x, y, k, dir, mp, path) {
+    path.push({x:x+1, y:y+1});
+
+
+    if(k === 0) {
+        const N = mp.length;
+        const M = mp[0].length;
+        const requiredLen = calculateRequiredLength(x, y, dir, N, M);
+        let lenMax = calcMaxLen(x, y, dir, mp);
+        
+        if(lenMax >= requiredLen) {
+            const delta = getDelta(dir);
+			for(let i = 1; i <= lenMax; i++) {
+				mp[x + delta.dx * i][y + delta.dy * i] = dir;
+			}
+			lenMax++;
+			path.push({x: x + delta.dx * lenMax+1, y: y + delta.dy * lenMax+1});
+			console.info(path);
+
+            return true;
+        } else {
+            path.pop();
+            mp[x][y] = 0;
+            return false;
+        }
+    }
+
+    let lenMax = calcMaxLen(x, y, dir, mp);
+    if(lenMax === 0) {
+        path.pop();
+        mp[x][y] = 0;
+        return false;
+    }
+
+    for(let attempt = 0; attempt < 3; attempt++) {
+        let len = Math.floor(Math.random() * lenMax) + 1;
+        let delta = getDelta(dir);
+        let newX = x + delta.dx * len;
+        let newY = y + delta.dy * len;
+        
+        // 检查路径是否合法
+        let valid = true;
+        let cells = [];
+        for(let i = 1; i <= len; i++) {
+            let cx = x + delta.dx * i;
+            let cy = y + delta.dy * i;
+            if(cx < 0 || cx >= mp.length || cy < 0 || cy >= mp[0].length || mp[cx][cy]) {
+                valid = false;
+                break;
+            }
+            cells.push([cx, cy]);
+        }
+        if(!valid) continue;
+
+        // 标记路径
+        cells.forEach(([cx, cy]) => mp[cx][cy] = dir);
+        
+        // 随机选择新方向
+        let newDirs = getPerpendicularDirs(dir);
+        let newDir = newDirs[Math.floor(Math.random() * 2)];
+        
+        // 递归搜索
+		if(dir == 1 && newDir ==2) mp[newX][newY] = '、';
+		if(dir == 1 && newDir ==4) mp[newX][newY] = '\/';
+		
+		if(dir == 2 && newDir ==3) mp[newX][newY] = '\/';
+		if(dir == 2 && newDir ==1) mp[newX][newY] = '、';
+
+		if(dir == 3 && newDir ==2) mp[newX][newY] = '\/';
+		if(dir == 3 && newDir ==4) mp[newX][newY] = '、';
+
+		if(dir == 4 && newDir ==1) mp[newX][newY] = '\/';
+		if(dir == 4 && newDir ==3) mp[newX][newY] = '、';		
+		
+        if(dfs(newX, newY, k-1, newDir, mp, path)) {
+            return true;
+        }
+        
+        // 回溯
+        cells.forEach(([cx, cy]) => mp[cx][cy] = 0);
+    }
+
+    path.pop();
+    mp[x][y] = 0;
+    return false;
+}
+
+// 辅助函数
+function getStartPos(dir, U, N, M) {
+    switch(dir) {
+        case 1: return {x:0, y:U-1};
+        case 2: return {x:U-1, y:0};
+        case 3: return {x:N-1, y:U-1};
+        case 4: return {x:U-1, y:M-1};
+    }
+}
+
+function calculateRequiredLength(x, y, dir, N, M) {
+    switch(dir) {
+        case 1: return N - 1 - x;
+        case 2: return M - 1 - y;
+        case 3: return x;
+        case 4: return y;
+    }
+}
+
+function calcMaxLen(x, y, dir, mp) {
+    let len = 0;
+    let delta = getDelta(dir);
+    while(true) {
+        let cx = x + delta.dx * (len+1);
+        let cy = y + delta.dy * (len+1);
+        if(cx < 0 || cx >= mp.length || cy < 0 || cy >= mp[0].length || mp[cx][cy]) break;
+        len++;
+    }
+    return len;
+}
+
+function getDelta(dir) {
+    switch(dir) {
+        case 1: return {dx:1, dy:0};  // 下
+        case 2: return {dx:0, dy:1};  // 右
+        case 3: return {dx:-1, dy:0}; // 上
+        case 4: return {dx:0, dy:-1}; // 左
+    }
+}
+
+function getPerpendicularDirs(dir) {
+    return dir%2 ? [2,4] : [1,3];
+}
+
+
+     startGame(false);
+    </script>
+</body>
+</html>
